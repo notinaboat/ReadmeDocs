@@ -16,20 +16,31 @@ export f1, f2
 using ReadmeDocs
 
 
-README\"\"\"## Interface"
+README"## Interface"
 
 README\"\"\"
-    f1(a, b)
-Documentation for `f1`.
+    f1(a, b) -> Foo
+
+Compute `Foo` for `a` and `b`.
 \"\"\"
 f1(a, b) = ...
 
 README\"\"\"
-    f2(x)
-Documentation for `f2`.
+    f2(x) -> Bar
+
+Compute `Bar` for `x`.
 \"\"\"
 f1(a, b) = ...
-end
+
+README\"\"\"
+## Notes"
+
+ * A...
+ * B...
+ * C...
+\"\"\"
+
+end # module Foo.jl
 ```
 
 e.g. Generate `README.md`:
@@ -45,14 +56,14 @@ This is the Foo.jl Package.
 
 ## Interface
 
-    f1(a, b)
+    f1(a, b) -> Foo
 
-Documentation for `f1`.
+Compute `Foo` for `a` and `b`.
 
 
-    f2(x)
+    f2(x) -> Bar
 
-Documentation for `f2`.
+Compute `Bar` for `x`.
 
 
 ## Notes"
@@ -62,7 +73,7 @@ Documentation for `f2`.
  * C...
 ```
 
-
+See also example [`Makefile`](Makefile).
 
 """
 module ReadmeDocs
