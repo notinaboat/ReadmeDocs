@@ -42,7 +42,7 @@ README"""
 end # module Foo.jl
 ```
 
-e.g. Generate `README.md`:
+... then generate `README.md`:
 
 ```julia
 julia> using Foo
