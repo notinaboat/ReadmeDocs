@@ -124,7 +124,6 @@ function generate(moddocs::ModuleDocs)
         x = search_meta(meta, path, line)
         if x != nothing
             name = string(x[:binding])
-            @show doc
             if !startswith(doc, "#")
                 doc = "\n### `$name`\n\n$doc"
             end
