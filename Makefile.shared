@@ -1,0 +1,178 @@
+# Makefile.shared
+#
+# Documentation generation rules.
+
+
+# Full path to the directory that contains this file `Makefile.shared`.
+THIS_MAKEFILE := $(lastword $(MAKEFILE_LIST))
+README_DOCS_DIR := $(realpath $(dir $(THIS_MAKEFILE)))
+
+
+# Find source files to be converted to HTML.
+
+FIND := find . -not -path './.git/*' \
+               -not -path './docs/*' \
+               -not -path '*log/*' \
+               -not -path '*jl_depot/*' \
+			   -name
+
+HTML_FILES = \
+	$(patsubst %.md,     %.md.html,   $(shell $(FIND) '*.md'            )) \
+	$(patsubst %,        %.html,      $(shell $(FIND) 'Makefile'        )) \
+	$(patsubst %,        %.html,      $(shell $(FIND) 'Makefile.shared' )) \
+	$(patsubst %.c,      %.c.html,    $(shell $(FIND) '*.c'             )) \
+	$(patsubst %.c,      %.c.md.html, $(shell $(FIND) '*.c'             )) \
+	$(patsubst %.h,      %.h.html,    $(shell $(FIND) '*.h'             )) \
+	$(patsubst %.h,      %.h.md.html, $(shell $(FIND) '*.h'             )) \
+	$(patsubst %.jl,     %.jl.html,   $(shell $(FIND) '*.jl'            )) \
+	$(patsubst %.sh,     %.sh.html,   $(shell $(FIND) '*.sh'            )) \
+	$(patsubst %.lua,    %.lua.html,  $(shell $(FIND) '*.lua'           )) \
+	$(patsubst %.log,    %.log.html,  $(shell $(FIND) '*.log'           )) \
+	$(patsubst %.txt,    %.txt.html,  $(shell $(FIND) '*.txt'           ))
+
+html:
+	for f in $(HTML_FILES); do \
+		$(MAKE) $$f; \
+	done
+
+info:
+	@echo "README_DOCS_DIR: $(README_DOCS_DIR)"
+	@echo "HTML_FILES: $(HTML_FILES)"
+
+
+
+# Convert Markdown to HTML using `pandoc`.
+
+%.md.html: %.md $(THIS_MAKEFILE)
+	@echo $@
+	echo $(dir $@)
+	echo $(HTTP_ROOT)
+	$(eval HTTP_ROOT_RELATIVE := \
+		$(shell realpath --relative-to $(dir $@) $(HTTP_ROOT)))
+	@pandoc $< \
+		--from markdown+multiline_tables-tex_math_dollars \
+  		--to html5+smart \
+		--toc \
+		--standalone \
+		--filter pandoc-sidenote \
+		--metadata author="Copyright Sam O'Connor." \
+		--metadata date="$(shell git log -1 --format=%cs )" \
+		--metadata version="$(shell git describe --tags)" \
+		--variable title_link=$(HTML_TITLE_LINK) \
+		--template $(README_DOCS_DIR)/pandoc_html5_template.txt \
+		--css="$(HTTP_ROOT_RELATIVE)/css/theme.css" \
+		--css="$(HTTP_ROOT_RELATIVE)/css/paper.css" \
+		--css="$(HTTP_ROOT_RELATIVE)/css/skylighting-paper-theme.css" \
+		--css="$(HTTP_ROOT_RELATIVE)/css/readmedocs.css" \
+		--variable fontsize=10pt \
+		--variable mainfont=sans-serif \
+		--variable monobackgroundcolor=F0F0F0 \
+		--lua-filter $(README_DOCS_DIR)/pandoc_filter.lua \
+		--output=$@
+
+
+
+# Convert ASNSI coloured console log files to HTML using `aha`.
+
+%.log.html: %.log
+	@echo $@
+	@iconv -c -f utf-8 -t utf-8 < $< \
+		| \
+	aha \
+		--black \
+		--stylesheet \
+		--css https://cdn.jsdelivr.net/gh/tonsky/FiraCode@5.2/distr/fira_code.css \
+		| \
+	sed 's/\(<style[^>]>\)/{ \
+		font-family: "Fira Code", "Menlo", monospace; \
+		line-height: 1.3; \
+		font-size: 12px; \
+	}/' > $@
+
+
+
+# Convert source code files to Markdown using `c_to_md.jl`.
+
+C_TO_MD := julia $(README_DOCS_DIR)/src/c_to_md.jl
+JL_TO_MD := julia $(README_DOCS_DIR)/src/jl_to_md.jl
+
+%.c.md: %.c
+	$(C_TO_MD) $<
+
+%.h.md: %.h
+	$(C_TO_MD) $<
+
+%.jl.md: %.jl
+	$(JL_TO_MD) $<
+
+
+
+# Convert source code files to HTML using highlight.js
+
+HIGHLIGHT := $(README_DOCS_DIR)/highlight.sh
+
+Makefile.html: Makefile
+	$(HIGHLIGHT) < $< > $@
+
+%/Makefile.html: %/Makefile
+	$(HIGHLIGHT) < $< > $@
+
+%.shared.html: %.shared
+	$(HIGHLIGHT) < $< > $@
+
+%.h.html: %.h
+	$(HIGHLIGHT) < $< > $@
+
+%.c.html: %.c
+	$(HIGHLIGHT) < $< > $@
+
+%.jl.html: %.jl
+	$(HIGHLIGHT) < $< > $@
+
+%.sh.html: %.sh
+	$(HIGHLIGHT) < $< > $@
+
+%.lua.html: %.lua
+	$(HIGHLIGHT) < $< > $@
+
+%.txt.html: %.txt
+	$(HIGHLIGHT) < $< > $@
+	
+
+
+# Delete generated HTML files.
+
+clean_html:
+	for f in $(HTML_FILES); do \
+		git ls-files --error-unmatch $$f > /dev/null 2>&1 || rm -f $$f ; \
+	done
+
+
+
+# Check for dependencies.
+
+ifeq (, $(shell which pandoc))
+$(error "`pandoc` not found! See https://pandoc.org or `brew install pandoc`.")
+endif
+
+ifeq (, $(shell which pandoc-sidenote))
+$(error "`pandoc-sidenote` not found! \
+		 See https://github.com/jez/pandoc-sidenote \
+		 or `brew install jez/formulae/pandoc-sidenote`")
+endif
+
+ifeq (, $(shell which aha))
+$(error "`aha` not found! \
+	     See https://github.com/theZiz/aha \
+		 or `brew install aha`")
+endif
+
+ifeq (, $(shell which realpath))
+$(error "`realpath` not found! \
+	     See https://www.gnu.org/software/coreutils/manual/coreutils.html#realpath-invocation \
+		 or `brew install coreutils`")
+endif
+
+
+
+# End of file: Makefile.shared

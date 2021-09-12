@@ -21,11 +21,10 @@ struct Heading end
 struct Doc end
 struct FixMe end
 
-format(::Heading, n, line) = "# $line"
-
 format(::FixMe, n, line) = "FIXME[^FIXME$n]\n\n[^FIXME$n]: ⚠️ $line"
 
-code_start(n) = """```julia"""
+#code_start(n) = """```julia"""
+code_start(n) = """```{.julia .numberLines .lineAnchors startFrom="$n"}"""
 code_end = "```"
 
 enter(::Code, v, n) = push!(v, code_start(n))
@@ -57,9 +56,9 @@ function c_to_md(c_filename)
             (Doc,   r"^ \"\"\"                         $"x) => nothing,
             (Doc,   r"^          (.*?)                 $"x) => Doc(),
             (Any,   r"^ [#] [ ]* FIXME (.*?) [ ]*      $"x) => FixMe(),
-            (Any,   r"^ [#] [ ]* (.+?) [ ]*            $"x) => Heading(),
+            (Any,   r"^ ([#]+ [ ] .+?) [ ]*            $"x) => Heading(),
             (Any,   r"^ [@]doc [ ] README\"\"\"        $"x) => Doc(),
-            (Any,   r"^ \"\"\"                         $"x) => Doc(),
+            (Any,   r"^ [a-z]* \"\"\"                  $"x) => Doc(),
             (Code,  r"^          (.*?)                 $"x) => Code(),
             (Any,   r"^          (.+?)                 $"x) => Code()
         ]
